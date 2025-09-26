@@ -590,7 +590,7 @@ export default function AdminPanel() {
                 <CardContent>
                   <div className="space-y-4">
                     <div className="flex justify-between">
-                      <span>Today's Orders</span>
+                      <span>Today&apos;s Orders</span>
                       <span className="font-medium">{orders.length}</span>
                     </div>
                     <div className="flex justify-between">
