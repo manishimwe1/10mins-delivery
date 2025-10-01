@@ -7,9 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { ShoppingCart, Plus, Minus, Search, Clock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { Doc } from "@/convex/_generated/dataModel"
+import ProductCard from "@/components/ProductCard"
+
 
 interface Product {
-  id: number
+  _id: string
   name: string
   description: string
   price: number
@@ -18,102 +23,34 @@ interface Product {
   stock_quantity: number
 }
 
-interface CartItem extends Product {
+export interface CartItem extends Product {
   quantity: number
 }
 
 export default function CustomerApp() {
-  const [products, setProducts] = useState<Product[]>([])
+  // const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [loading, setLoading] = useState(true)
 
-  // Mock data - in real app this would come from API
-  useEffect(() => {
-    const mockProducts: Product[] = [
-      {
-        id: 1,
-        name: "Fresh Bananas",
-        description: "Organic bananas from local farms",
-        price: 2.99,
-        category: "Fruits",
-        image_url: "/fresh-bananas.jpg",
-        stock_quantity: 50,
-      },
-      {
-        id: 2,
-        name: "Whole Milk",
-        description: "Fresh whole milk 1L",
-        price: 3.49,
-        category: "Dairy",
-        image_url: "/milk-carton.png",
-        stock_quantity: 30,
-      },
-      {
-        id: 3,
-        name: "Bread Loaf",
-        description: "Freshly baked white bread",
-        price: 2.79,
-        category: "Bakery",
-        image_url: "/rustic-bread-loaf.png",
-        stock_quantity: 25,
-      },
-      {
-        id: 4,
-        name: "Chicken Breast",
-        description: "Fresh chicken breast 1kg",
-        price: 8.99,
-        category: "Meat",
-        image_url: "/grilled-chicken-breast.png",
-        stock_quantity: 20,
-      },
-      {
-        id: 5,
-        name: "Tomatoes",
-        description: "Fresh red tomatoes 500g",
-        price: 3.99,
-        category: "Vegetables",
-        image_url: "/red-tomatoes.jpg",
-        stock_quantity: 40,
-      },
-      {
-        id: 6,
-        name: "Orange Juice",
-        description: "Fresh orange juice 1L",
-        price: 4.99,
-        category: "Beverages",
-        image_url: "/glass-of-orange-juice.png",
-        stock_quantity: 35,
-      },
-    ]
-    setProducts(mockProducts)
-    setLoading(false)
-  }, [])
+  const products = useQuery(api.products.getProducts);
+  const loading = products === undefined;
 
-  const categories = ["all", ...Array.from(new Set(products.map((p) => p.category)))]
+  const categories = ["all", ...Array.from(new Set((products || []).map((p) => p.category)))]
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = (products || []).filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
     return matchesSearch && matchesCategory
   })
 
-  const addToCart = (product: Product) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id)
-      if (existing) {
-        return prev.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item))
-      }
-      return [...prev, { ...product, quantity: 1 }]
-    })
-  }
+  
 
-  const updateQuantity = (id: number, change: number) => {
+  const updateQuantity = (id: string, change: number) => {
     setCart((prev) => {
       return prev
         .map((item) => {
-          if (item.id === id) {
+          if (item._id === id) {
             const newQuantity = item.quantity + change
             return newQuantity > 0 ? { ...item, quantity: newQuantity } : null
           }
@@ -226,14 +163,14 @@ export default function CustomerApp() {
                 <CardContent>
                   <div className="space-y-3">
                     {cart.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
+                      <div key={item._id} className="flex items-center justify-between text-sm">
                         <span className="truncate flex-1">{item.name}</span>
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-6 w-6 p-0 bg-transparent"
-                            onClick={() => updateQuantity(item.id, -1)}
+                            onClick={() => updateQuantity(item._id, -1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -242,7 +179,7 @@ export default function CustomerApp() {
                             variant="outline"
                             size="sm"
                             className="h-6 w-6 p-0 bg-transparent"
-                            onClick={() => updateQuantity(item.id, 1)}
+                            onClick={() => updateQuantity(item._id, 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -272,36 +209,7 @@ export default function CustomerApp() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {filteredProducts.map((product) => (
-                <Card
-                  key={product.id}
-                  className="border-border/40 bg-card/50 backdrop-blur-sm hover:bg-card/70 transition-colors"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="aspect-square relative mb-3 rounded-lg overflow-hidden bg-muted">
-                      <img
-                        src={product.image_url || "/placeholder.svg"}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription className="text-pretty">{product.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-2xl font-bold text-primary">${product.price.toFixed(2)}</div>
-                      <Badge variant="secondary">{product.stock_quantity} in stock</Badge>
-                    </div>
-                    <Button
-                      onClick={() => addToCart(product)}
-                      className="w-full"
-                      disabled={product.stock_quantity === 0}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                  </CardContent>
-                </Card>
+                <ProductCard key={product._id} product={product} />
               ))}
             </div>
 
