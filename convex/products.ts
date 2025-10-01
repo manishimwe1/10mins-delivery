@@ -25,7 +25,7 @@ export const createProduct = mutation({
     description: v.string(),
     price: v.number(),
     category: v.string(),
-    image_url: v.string(),
+    image_url: v.array(v.string()),
     stock_quantity: v.number(),
   },
   handler: async (ctx, args) => {

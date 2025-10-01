@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+
 import { useDropzone } from "react-dropzone";
 import {
   Select,
@@ -69,7 +70,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { api } from "@/convex/_generated/api";
+import { useMutation } from "convex/react";
+import ProductTable from "./_components/ProductTable";
 
 interface Product {
   id: number;
@@ -117,12 +121,16 @@ export default function AdminPanel() {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
+  const addProduct = useMutation(api.products.createProduct);
+
   const formSchema = z.object({
     name: z.string().min(1, "Product name is required"),
     description: z.string().min(1, "Product description is required"),
     category: z.string().min(1, "Category is required"),
-    price: z.number().min(0.01, "Price must be greater than 0"),
-    stock_quantity: z.number().min(0, "Stock quantity cannot be negative"),
+    price: z.coerce.number().min(0.01, "Price must be greater than 0"),
+    stock_quantity: z.coerce
+      .number()
+      .min(0, "Stock quantity cannot be negative"),
     images: z.array(z.string()).min(1, "At least one image is required"),
   });
 
@@ -164,22 +172,70 @@ export default function AdminPanel() {
     const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
     setUploadedFiles(newUploadedFiles);
     setImagePreviews(newImagePreviews);
-    form.setValue(
-      "images",
-      newImagePreviews,
-      { shouldValidate: true }
-    );
+    form.setValue("images", newImagePreviews, { shouldValidate: true });
   };
 
-  const onSubmit = (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-    // Here you would typically send the data to your backend
-    // For now, we'll just log it and close the dialog
-    toast.success("Product added successfully!");
-    setIsAddProductOpen(false);
-    form.reset();
-    setUploadedFiles([]);
-    setImagePreviews([]);
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      if (uploadedFiles.length === 0) {
+        toast.error("Please upload at least one image.");
+        return;
+      }
+
+      toast.loading("Uploading images...");
+
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      if (!cloudName) {
+        throw new Error("Cloudinary cloud name is not defined.");
+      }
+
+      // 1. Upload all images to Cloudinary
+      const uploadedUrls: string[] = [];
+      for (const file of uploadedFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append(
+          "upload_preset",
+          process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET!
+        );
+
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+
+        const res = await fetch(cloudinaryUrl, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(
+            `Failed to upload image ${file.name}: ${errorData.error.message}`
+          );
+        }
+
+        const data = await res.json();
+        uploadedUrls.push(data.secure_url);
+      }
+      await addProduct({
+        category: values.category,
+        description: values.description,
+        image_url: uploadedUrls,
+        name: values.name,
+        price: values.price,
+        stock_quantity: values.stock_quantity,
+      });
+
+
+      toast.success("Product added successfully!", { richColors: true });
+      setIsAddProductOpen(false);
+      form.reset();
+      setUploadedFiles([]);
+      setImagePreviews([]);
+    } catch (error) {
+      toast.dismiss();
+      toast.error("Failed to add product.");
+      console.error("Error adding product:", error);
+    }
   };
 
   useEffect(() => {
@@ -311,7 +367,6 @@ export default function AdminPanel() {
     return variants[status as keyof typeof variants] || variants.pending;
   };
 
-  
   const assignRider = (orderId: string, riderId: number) => {
     const rider = riders.find((r) => r.id === riderId);
     setOrders((prev) =>
@@ -581,189 +636,235 @@ export default function AdminPanel() {
 
           {/* Products Tab */}
           <TabsContent value="products">
-          <Card>
-            <CardHeader className="flex justify-between items-center">
-              <div>
-                <CardTitle>Product Management</CardTitle>
-                <CardDescription>Manage your product catalog</CardDescription>
-              </div>
-              <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="h-4 w-4 mr-2" /> Add Product
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add Product</DialogTitle>
-                    <DialogDescription>Fill details below</DialogDescription>
-                  </DialogHeader>
+            <Card>
+              <CardHeader className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Product Management</CardTitle>
+                  <CardDescription>Manage your product catalog</CardDescription>
+                </div>
 
-                  {/* FORM */}
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Product Name</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Enter product name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                <Dialog
+                  open={isAddProductOpen}
+                  onOpenChange={setIsAddProductOpen}
+                >
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" /> Add Product
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="w-full h-[90vh] overflow-hidden">
+                    <ScrollArea className="w-full p-4 h-[90vh]">
+                      <DialogHeader>
+                        <DialogTitle>Add Product</DialogTitle>
+                        <DialogDescription>
+                          Fill details below to add a new product to your
+                          inventory.
+                        </DialogDescription>
+                      </DialogHeader>
 
-                      <FormField
-                        control={form.control}
-                        name="category"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Category</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select category" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                <SelectItem value="fruits">Fruits</SelectItem>
-                                <SelectItem value="vegetables">Vegetables</SelectItem>
-                                <SelectItem value="dairy">Dairy</SelectItem>
-                                <SelectItem value="meat">Meat</SelectItem>
-                                <SelectItem value="bakery">Bakery</SelectItem>
-                                <SelectItem value="beverages">Beverages</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      {/* FORM */}
+                      <Form {...form}>
+                        <form
+                          onSubmit={form.handleSubmit(onSubmit)}
+                          className="space-y-6"
+                        >
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Product Name</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="e.g., Fresh Bananas"
+                                      {...field}
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Description</FormLabel>
-                            <FormControl>
-                              <Textarea placeholder="Product description" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* IMAGE UPLOAD */}
-                      <FormField
-                        control={form.control}
-                        name="images"
-                        render={() => (
-                          <FormItem>
-                            <FormLabel>Product Images</FormLabel>
-                            <div
-                              {...getRootProps()}
-                              className={`border-2 border-dashed p-6 text-center cursor-pointer rounded-lg transition-colors ${
-                                isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
-                              }`}
-                            >
-                              <input {...getInputProps()} />
-                              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                              <p className="text-sm text-gray-500">
-                                Drag & drop images, or click to select
-                              </p>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                              {imagePreviews.map((preview, index) => (
-                                <div key={index} className="relative group">
-                                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
-                                    <Image src={preview} alt="" fill className="object-cover" />
-                                  </div>
-                                  <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="destructive"
-                                    className="absolute -top-2 -right-2 h-6 w-6"
-                                    onClick={() => removeImage(index)}
+                            <FormField
+                              control={form.control}
+                              name="category"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Category</FormLabel>
+                                  <Select
+                                    onValueChange={field.onChange}
+                                    value={field.value}
                                   >
-                                    <X className="h-3 w-3" />
-                                  </Button>
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select a category" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="fruits">
+                                        Fruits
+                                      </SelectItem>
+                                      <SelectItem value="vegetables">
+                                        Vegetables
+                                      </SelectItem>
+                                      <SelectItem value="dairy">
+                                        Dairy
+                                      </SelectItem>
+                                      <SelectItem value="meat">Meat</SelectItem>
+                                      <SelectItem value="bakery">
+                                        Bakery
+                                      </SelectItem>
+                                      <SelectItem value="beverages">
+                                        Beverages
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="description"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Product Description</FormLabel>
+                                <FormControl>
+                                  <Textarea
+                                    placeholder="Provide a detailed description of the product"
+                                    rows={4}
+                                    {...field}
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          {/* IMAGE UPLOAD */}
+                          <FormField
+                            control={form.control}
+                            name="images"
+                            render={() => (
+                              <FormItem>
+                                <FormLabel>Product Images</FormLabel>
+                                <div
+                                  {...getRootProps()}
+                                  className={`border-2 border-dashed p-6 text-center cursor-pointer rounded-lg transition-colors ${
+                                    isDragActive
+                                      ? "border-blue-500 bg-blue-50"
+                                      : "border-gray-300 hover:border-gray-400"
+                                  }`}
+                                >
+                                  <input {...getInputProps()} />
+                                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                                  <p className="text-sm text-gray-500">
+                                    Drag and drop product images here, or click
+                                    to select files (Max 5MB per image)
+                                  </p>
                                 </div>
-                              ))}
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                  {imagePreviews.map((preview, index) => (
+                                    <div key={index} className="relative group">
+                                      <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                                        <Image
+                                          src={preview}
+                                          alt={`Product preview ${index + 1}`}
+                                          fill
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                      <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="destructive"
+                                        className="absolute -top-2 -right-2 h-6 w-6"
+                                        onClick={() => removeImage(index)}
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    </div>
+                                  ))}
+                                </div>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="price"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Price ($)</FormLabel>
-                              <FormControl>
-                                <Input type="number" step="0.01" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="price"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Price ($)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      step="0.01"
+                                      placeholder="e.g., 9.99"
+                                      {...field}
+                                      onChange={(e) =>
+                                        field.onChange(
+                                          parseFloat(e.target.value)
+                                        )
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
 
-                        <FormField
-                          control={form.control}
-                          name="stock_quantity"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Stock Quantity</FormLabel>
-                              <FormControl>
-                                <Input type="number" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
+                            <FormField
+                              control={form.control}
+                              name="stock_quantity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Stock Quantity</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      type="number"
+                                      placeholder="e.g., 100"
+                                      {...field}
+                                      onChange={(e) =>
+                                        field.onChange(
+                                          parseInt(e.target.value, 10)
+                                        )
+                                      }
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
 
-                      <div className="flex justify-end gap-2">
-                        <Button type="button" variant="outline" onClick={() => setIsAddProductOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button type="submit">Add Product</Button>
-                      </div>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
+                          <div className="flex justify-end gap-2 pt-4 pb-8">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setIsAddProductOpen(false)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button type="submit">Add Product</Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </ScrollArea>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
 
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Stock</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {products.map((p) => (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.name}</TableCell>
-                      <TableCell>{p.category}</TableCell>
-                      <TableCell>${p.price.toFixed(2)}</TableCell>
-                      <TableCell>{p.stock_quantity}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
+              <CardContent>
+                <ProductTable/>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           {/* Riders Tab */}
           <TabsContent value="riders">

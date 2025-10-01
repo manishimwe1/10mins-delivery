@@ -44,6 +44,7 @@
     "cmdk": "1.0.4",
     "convex": "^1.26.2",
     "date-fns": "4.1.0",
+    "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "8.5.1",
     "geist": "latest",
     "input-otp": "1.4.1",
