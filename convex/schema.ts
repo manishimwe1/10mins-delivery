@@ -24,9 +24,10 @@ export default defineSchema({
     description: v.string(),
     price: v.number(),
     category: v.string(),
-    image: v.optional(v.string()),
-    isActive: v.boolean(),
-  }),
+    image_url: v.string(),
+    stock_quantity: v.number(),
+    isActive:v.optional(v.boolean())
+  }).index("by_category",["category"]),
 
   inventory: defineTable({
     productId: v.id("products"),

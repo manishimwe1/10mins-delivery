@@ -1,15 +1,35 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useDropzone } from "react-dropzone";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +37,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
+} from "@/components/ui/dialog";
 import {
   Settings,
   ShoppingCart,
@@ -31,52 +51,142 @@ import {
   DollarSign,
   Eye,
   UserCheck,
-} from "lucide-react"
-import Link from "next/link"
+  X,
+  Upload,
+} from "lucide-react";
+import { toast } from "sonner";
+import Link from "next/link";
+import Image from "next/image";
+import { Toaster } from "@/components/ui/sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
 
 interface Product {
-  id: number
-  name: string
-  description: string
-  price: number
-  category: string
-  stock_quantity: number
-  is_active: boolean
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  stock_quantity: number;
+  is_active: boolean;
 }
 
 interface Order {
-  id: string
-  customer_name: string
-  customer_phone: string
-  total_amount: number
-  status: "pending" | "in_progress" | "delivered" | "cancelled"
-  payment_method: string
-  delivery_address: string
-  created_at: string
-  rider_name?: string
+  id: string;
+  customer_name: string;
+  customer_phone: string;
+  total_amount: number;
+  status: "pending" | "in_progress" | "delivered" | "cancelled";
+  payment_method: string;
+  delivery_address: string;
+  created_at: string;
+  rider_name?: string;
   items: Array<{
-    name: string
-    quantity: number
-    price: number
-  }>
+    name: string;
+    quantity: number;
+    price: number;
+  }>;
 }
 
 interface Rider {
-  id: number
-  name: string
-  phone: string
-  vehicle_type: string
-  is_available: boolean
-  total_deliveries: number
-  rating: number
+  id: number;
+  name: string;
+  phone: string;
+  vehicle_type: string;
+  is_available: boolean;
+  total_deliveries: number;
+  rating: number;
 }
 
 export default function AdminPanel() {
-  const [products, setProducts] = useState<Product[]>([])
-  const [orders, setOrders] = useState<Order[]>([])
-  const [riders, setRiders] = useState<Rider[]>([])
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [isAddProductOpen, setIsAddProductOpen] = useState(false)
+  const [products, setProducts] = useState<Product[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [riders, setRiders] = useState<Rider[]>([]);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+
+  const formSchema = z.object({
+    name: z.string().min(1, "Product name is required"),
+    description: z.string().min(1, "Product description is required"),
+    category: z.string().min(1, "Category is required"),
+    price: z.number().min(0.01, "Price must be greater than 0"),
+    stock_quantity: z.number().min(0, "Stock quantity cannot be negative"),
+    images: z.array(z.string()).min(1, "At least one image is required"),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      category: "",
+      price: 0,
+      stock_quantity: 0,
+      images: [],
+    },
+  });
+
+  const onDrop = useCallback(
+    (acceptedFiles: File[]) => {
+      const newFiles = acceptedFiles.map((file) =>
+        Object.assign(file, {
+          preview: URL.createObjectURL(file),
+        })
+      );
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+      setImagePreviews((prev) => [
+        ...prev,
+        ...newFiles.map((file) => file.preview),
+      ]);
+      form.setValue(
+        "images",
+        [...form.getValues("images"), ...newFiles.map((file) => file.preview)],
+        { shouldValidate: true }
+      );
+    },
+    [form]
+  );
+
+  const removeImage = (index: number) => {
+    const newUploadedFiles = uploadedFiles.filter((_, i) => i !== index);
+    const newImagePreviews = imagePreviews.filter((_, i) => i !== index);
+    setUploadedFiles(newUploadedFiles);
+    setImagePreviews(newImagePreviews);
+    form.setValue(
+      "images",
+      newImagePreviews,
+      { shouldValidate: true }
+    );
+  };
+
+  const onSubmit = (values: z.infer<typeof formSchema>) => {
+    console.log(values);
+    // Here you would typically send the data to your backend
+    // For now, we'll just log it and close the dialog
+    toast.success("Product added successfully!");
+    setIsAddProductOpen(false);
+    form.reset();
+    setUploadedFiles([]);
+    setImagePreviews([]);
+  };
+
+  useEffect(() => {
+    // Revoke the data uris to avoid memory leaks
+    return () =>
+      imagePreviews.forEach((preview) => URL.revokeObjectURL(preview));
+  }, [imagePreviews]);
 
   // Mock data
   useEffect(() => {
@@ -108,7 +218,7 @@ export default function AdminPanel() {
         stock_quantity: 25,
         is_active: true,
       },
-    ]
+    ];
 
     const mockOrders: Order[] = [
       {
@@ -156,7 +266,7 @@ export default function AdminPanel() {
           { name: "Greek Yogurt", quantity: 1, price: 4.49 },
         ],
       },
-    ]
+    ];
 
     const mockRiders: Rider[] = [
       {
@@ -177,19 +287,19 @@ export default function AdminPanel() {
         total_deliveries: 89,
         rating: 4.9,
       },
-    ]
+    ];
 
-    setProducts(mockProducts)
-    setOrders(mockOrders)
-    setRiders(mockRiders)
-  }, [])
+    setProducts(mockProducts);
+    setOrders(mockOrders);
+    setRiders(mockRiders);
+  }, []);
 
   const stats = {
     totalOrders: orders.length,
     pendingOrders: orders.filter((o) => o.status === "pending").length,
     totalRevenue: orders.reduce((sum, order) => sum + order.total_amount, 0),
     activeRiders: riders.filter((r) => r.is_available).length,
-  }
+  };
 
   const getStatusBadge = (status: string) => {
     const variants = {
@@ -197,18 +307,34 @@ export default function AdminPanel() {
       in_progress: "bg-blue-500/10 text-blue-500 border-blue-500/20",
       delivered: "bg-green-500/10 text-green-500 border-green-500/20",
       cancelled: "bg-red-500/10 text-red-500 border-red-500/20",
-    }
-    return variants[status as keyof typeof variants] || variants.pending
-  }
+    };
+    return variants[status as keyof typeof variants] || variants.pending;
+  };
 
+  
   const assignRider = (orderId: string, riderId: number) => {
-    const rider = riders.find((r) => r.id === riderId)
+    const rider = riders.find((r) => r.id === riderId);
     setOrders((prev) =>
       prev.map((order) =>
-        order.id === orderId ? { ...order, status: "in_progress" as const, rider_name: rider?.name } : order,
-      ),
-    )
-  }
+        order.id === orderId
+          ? {
+              ...order,
+              status: "in_progress" as const,
+              rider_name: rider?.name,
+            }
+          : order
+      )
+    );
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      "image/*": [".jpeg", ".png", ".jpg", ".gif", ".webp"],
+    },
+    multiple: true,
+    maxSize: 5 * 1024 * 1024, // 5MB
+  });
 
   return (
     <div className="min-h-screen">
@@ -252,7 +378,9 @@ export default function AdminPanel() {
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Pending Orders</p>
+                  <p className="text-sm text-muted-foreground">
+                    Pending Orders
+                  </p>
                   <p className="text-2xl font-bold">{stats.pendingOrders}</p>
                 </div>
                 <Clock className="h-8 w-8 text-yellow-500" />
@@ -265,7 +393,9 @@ export default function AdminPanel() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Total Revenue</p>
-                  <p className="text-2xl font-bold">${stats.totalRevenue.toFixed(2)}</p>
+                  <p className="text-2xl font-bold">
+                    ${stats.totalRevenue.toFixed(2)}
+                  </p>
                 </div>
                 <DollarSign className="h-8 w-8 text-green-500" />
               </div>
@@ -299,7 +429,9 @@ export default function AdminPanel() {
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Order Management</CardTitle>
-                <CardDescription>View and manage all customer orders</CardDescription>
+                <CardDescription>
+                  View and manage all customer orders
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -316,22 +448,34 @@ export default function AdminPanel() {
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className="font-medium">{order.id}</TableCell>
+                        <TableCell className="font-medium">
+                          {order.id}
+                        </TableCell>
                         <TableCell>
                           <div>
-                            <div className="font-medium">{order.customer_name}</div>
-                            <div className="text-sm text-muted-foreground">{order.customer_phone}</div>
+                            <div className="font-medium">
+                              {order.customer_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {order.customer_phone}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>${order.total_amount.toFixed(2)}</TableCell>
                         <TableCell>
-                          <Badge className={getStatusBadge(order.status)}>{order.status.replace("_", " ")}</Badge>
+                          <Badge className={getStatusBadge(order.status)}>
+                            {order.status.replace("_", " ")}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {order.rider_name ? (
                             <span className="text-sm">{order.rider_name}</span>
                           ) : (
-                            <Select onValueChange={(value) => assignRider(order.id, Number.parseInt(value))}>
+                            <Select
+                              onValueChange={(value) =>
+                                assignRider(order.id, Number.parseInt(value))
+                              }
+                            >
                               <SelectTrigger className="w-32">
                                 <SelectValue placeholder="Assign" />
                               </SelectTrigger>
@@ -339,7 +483,10 @@ export default function AdminPanel() {
                                 {riders
                                   .filter((r) => r.is_available)
                                   .map((rider) => (
-                                    <SelectItem key={rider.id} value={rider.id.toString()}>
+                                    <SelectItem
+                                      key={rider.id}
+                                      value={rider.id.toString()}
+                                    >
                                       {rider.name}
                                     </SelectItem>
                                   ))}
@@ -350,45 +497,72 @@ export default function AdminPanel() {
                         <TableCell>
                           <Dialog>
                             <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedOrder(order)}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </DialogTrigger>
                             <DialogContent className="max-w-2xl">
                               <DialogHeader>
-                                <DialogTitle>Order Details - {selectedOrder?.id}</DialogTitle>
-                                <DialogDescription>Complete order information</DialogDescription>
+                                <DialogTitle>
+                                  Order Details - {selectedOrder?.id}
+                                </DialogTitle>
+                                <DialogDescription>
+                                  Complete order information
+                                </DialogDescription>
                               </DialogHeader>
                               {selectedOrder && (
                                 <div className="space-y-4">
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <Label>Customer</Label>
-                                      <p className="text-sm">{selectedOrder.customer_name}</p>
-                                      <p className="text-sm text-muted-foreground">{selectedOrder.customer_phone}</p>
+                                      <p className="text-sm">
+                                        {selectedOrder.customer_name}
+                                      </p>
+                                      <p className="text-sm text-muted-foreground">
+                                        {selectedOrder.customer_phone}
+                                      </p>
                                     </div>
                                     <div>
                                       <Label>Payment Method</Label>
-                                      <p className="text-sm">{selectedOrder.payment_method}</p>
+                                      <p className="text-sm">
+                                        {selectedOrder.payment_method}
+                                      </p>
                                     </div>
                                   </div>
                                   <div>
                                     <Label>Delivery Address</Label>
-                                    <p className="text-sm text-pretty">{selectedOrder.delivery_address}</p>
+                                    <p className="text-sm text-pretty">
+                                      {selectedOrder.delivery_address}
+                                    </p>
                                   </div>
                                   <div>
                                     <Label>Items</Label>
                                     <div className="space-y-2">
-                                      {selectedOrder.items.map((item, index) => (
-                                        <div key={index} className="flex justify-between text-sm">
-                                          <span>
-                                            {item.quantity}x {item.name}
-                                          </span>
-                                          <span>${(item.price * item.quantity).toFixed(2)}</span>
-                                        </div>
-                                      ))}
+                                      {selectedOrder.items.map(
+                                        (item, index) => (
+                                          <div
+                                            key={index}
+                                            className="flex justify-between text-sm"
+                                          >
+                                            <span>
+                                              {item.quantity}x {item.name}
+                                            </span>
+                                            <span>
+                                              $
+                                              {(
+                                                item.price * item.quantity
+                                              ).toFixed(2)}
+                                            </span>
+                                          </div>
+                                        )
+                                      )}
                                       <div className="border-t pt-2 font-medium">
-                                        Total: ${selectedOrder.total_amount.toFixed(2)}
+                                        Total: $
+                                        {selectedOrder.total_amount.toFixed(2)}
                                       </div>
                                     </div>
                                   </div>
@@ -407,128 +581,198 @@ export default function AdminPanel() {
 
           {/* Products Tab */}
           <TabsContent value="products">
-            <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Product Management</CardTitle>
-                    <CardDescription>Manage your product catalog and inventory</CardDescription>
-                  </div>
-                  <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Product
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Add New Product</DialogTitle>
-                        <DialogDescription>Create a new product in your catalog</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div>
-                          <Label htmlFor="name">Product Name</Label>
-                          <Input id="name" placeholder="Enter product name" />
-                        </div>
-                        <div>
-                          <Label htmlFor="description">Description</Label>
-                          <Textarea id="description" placeholder="Product description" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label htmlFor="price">Price ($)</Label>
-                            <Input id="price" type="number" step="0.01" placeholder="0.00" />
-                          </div>
-                          <div>
-                            <Label htmlFor="stock">Stock Quantity</Label>
-                            <Input id="stock" type="number" placeholder="0" />
-                          </div>
-                        </div>
-                        <div>
-                          <Label htmlFor="category">Category</Label>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="fruits">Fruits</SelectItem>
-                              <SelectItem value="vegetables">Vegetables</SelectItem>
-                              <SelectItem value="dairy">Dairy</SelectItem>
-                              <SelectItem value="meat">Meat</SelectItem>
-                              <SelectItem value="bakery">Bakery</SelectItem>
-                              <SelectItem value="beverages">Beverages</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={() => setIsAddProductOpen(false)}>Add Product</Button>
-                        </div>
+          <Card>
+            <CardHeader className="flex justify-between items-center">
+              <div>
+                <CardTitle>Product Management</CardTitle>
+                <CardDescription>Manage your product catalog</CardDescription>
+              </div>
+              <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" /> Add Product
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Product</DialogTitle>
+                    <DialogDescription>Fill details below</DialogDescription>
+                  </DialogHeader>
+
+                  {/* FORM */}
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Product Name</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Enter product name" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="category"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Category</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select category" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="fruits">Fruits</SelectItem>
+                                <SelectItem value="vegetables">Vegetables</SelectItem>
+                                <SelectItem value="dairy">Dairy</SelectItem>
+                                <SelectItem value="meat">Meat</SelectItem>
+                                <SelectItem value="bakery">Bakery</SelectItem>
+                                <SelectItem value="beverages">Beverages</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Description</FormLabel>
+                            <FormControl>
+                              <Textarea placeholder="Product description" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* IMAGE UPLOAD */}
+                      <FormField
+                        control={form.control}
+                        name="images"
+                        render={() => (
+                          <FormItem>
+                            <FormLabel>Product Images</FormLabel>
+                            <div
+                              {...getRootProps()}
+                              className={`border-2 border-dashed p-6 text-center cursor-pointer rounded-lg transition-colors ${
+                                isDragActive ? "border-blue-500 bg-blue-50" : "border-gray-300"
+                              }`}
+                            >
+                              <input {...getInputProps()} />
+                              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                              <p className="text-sm text-gray-500">
+                                Drag & drop images, or click to select
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                              {imagePreviews.map((preview, index) => (
+                                <div key={index} className="relative group">
+                                  <div className="relative w-full h-32 rounded-lg overflow-hidden border">
+                                    <Image src={preview} alt="" fill className="object-cover" />
+                                  </div>
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="destructive"
+                                    className="absolute -top-2 -right-2 h-6 w-6"
+                                    onClick={() => removeImage(index)}
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="price"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Price ($)</FormLabel>
+                              <FormControl>
+                                <Input type="number" step="0.01" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="stock_quantity"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Stock Quantity</FormLabel>
+                              <FormControl>
+                                <Input type="number" {...field} />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
+
+                      <div className="flex justify-end gap-2">
+                        <Button type="button" variant="outline" onClick={() => setIsAddProductOpen(false)}>
+                          Cancel
+                        </Button>
+                        <Button type="submit">Add Product</Button>
+                      </div>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            </CardHeader>
+
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Stock</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell>{p.name}</TableCell>
+                      <TableCell>{p.category}</TableCell>
+                      <TableCell>${p.price.toFixed(2)}</TableCell>
+                      <TableCell>{p.stock_quantity}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {products.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{product.name}</div>
-                            <div className="text-sm text-muted-foreground text-pretty">{product.description}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{product.category}</TableCell>
-                        <TableCell>${product.price.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Badge variant={product.stock_quantity > 10 ? "default" : "destructive"}>
-                            {product.stock_quantity}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={product.is_active ? "default" : "secondary"}>
-                            {product.is_active ? "Active" : "Inactive"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="outline" size="sm">
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button variant="outline" size="sm">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
           {/* Riders Tab */}
           <TabsContent value="riders">
             <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
               <CardHeader>
                 <CardTitle>Rider Management</CardTitle>
-                <CardDescription>Manage delivery riders and their availability</CardDescription>
+                <CardDescription>
+                  Manage delivery riders and their availability
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
@@ -548,7 +792,9 @@ export default function AdminPanel() {
                         <TableCell>
                           <div>
                             <div className="font-medium">{rider.name}</div>
-                            <div className="text-sm text-muted-foreground">{rider.phone}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {rider.phone}
+                            </div>
                           </div>
                         </TableCell>
                         <TableCell>{rider.vehicle_type}</TableCell>
@@ -560,7 +806,11 @@ export default function AdminPanel() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={rider.is_available ? "default" : "secondary"}>
+                          <Badge
+                            variant={
+                              rider.is_available ? "default" : "secondary"
+                            }
+                          >
                             {rider.is_available ? "Available" : "Offline"}
                           </Badge>
                         </TableCell>
@@ -595,12 +845,20 @@ export default function AdminPanel() {
                     </div>
                     <div className="flex justify-between">
                       <span>Average Order Value</span>
-                      <span className="font-medium">${(stats.totalRevenue / stats.totalOrders).toFixed(2)}</span>
+                      <span className="font-medium">
+                        ${(stats.totalRevenue / stats.totalOrders).toFixed(2)}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span>Completion Rate</span>
                       <span className="font-medium">
-                        {((orders.filter((o) => o.status === "delivered").length / orders.length) * 100).toFixed(1)}%
+                        {(
+                          (orders.filter((o) => o.status === "delivered")
+                            .length /
+                            orders.length) *
+                          100
+                        ).toFixed(1)}
+                        %
                       </span>
                     </div>
                   </div>
@@ -614,14 +872,19 @@ export default function AdminPanel() {
                 <CardContent>
                   <div className="space-y-3">
                     {products.slice(0, 3).map((product, index) => (
-                      <div key={product.id} className="flex items-center justify-between">
+                      <div
+                        key={product.id}
+                        className="flex items-center justify-between"
+                      >
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-sm font-medium">
                             {index + 1}
                           </div>
                           <span className="font-medium">{product.name}</span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{product.stock_quantity} sold</span>
+                        <span className="text-sm text-muted-foreground">
+                          {product.stock_quantity} sold
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -632,5 +895,5 @@ export default function AdminPanel() {
         </Tabs>
       </div>
     </div>
-  )
+  );
 }

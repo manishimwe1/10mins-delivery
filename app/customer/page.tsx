@@ -157,7 +157,7 @@ export default function CustomerApp() {
               </Link>
               <div className="flex items-center gap-2">
                 <Clock className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold">QuickDelivery</h1>
+                <h1 className="text-xl font-bold"><span className="text-primary">10mins</span>Delivery</h1>
               </div>
             </div>
             <div className="flex items-center gap-4">
