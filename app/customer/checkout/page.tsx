@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import EmptyState from "@/components/EmptyState";
+import { PaymentModal } from "@/components/payment-modal";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -11,19 +12,17 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Clock, CreditCard, Smartphone, MapPin } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { DELIVERY_FEE } from "@/constant";
+import { ordersApi } from "@/lib/api";
+import { useCartStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
+import { ArrowLeft, Clock, CreditCard, MapPin, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ordersApi } from "@/lib/api";
-import { PaymentModal } from "@/components/payment-modal";
-import { useCartStore } from "@/lib/store";
-import { DELIVERY_FEE } from "@/constant";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import EmptyState from "@/components/EmptyState";
+import { useState } from "react";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -38,7 +37,7 @@ export default function CheckoutPage() {
     notes: "",
   });
 
-  const { cart, clearCart } = useCartStore();
+  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCartStore();
 
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -74,7 +73,6 @@ export default function CheckoutPage() {
 
       // Show payment modal for processing
       setShowPaymentModal(true);
-      clearCart(); // Clear cart after successful order placement
     } catch (error) {
       console.error("Failed to place order:", error);
       alert("Failed to place order. Please try again.");
@@ -258,12 +256,39 @@ export default function CheckoutPage() {
                       {cart.map((item) => (
                         <div
                           key={item._id}
-                          className="flex items-center justify-between"
+                          className="flex items-center justify-between gap-4"
                         >
                           <div className="flex-1">
                             <div className="font-medium">{item.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              Qty: {item.quantity}
+                              <div className="flex items-center gap-2 mt-1">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => decreaseQuantity(item._id)}
+                                  disabled={item.quantity === 1}
+                                >
+                                  -
+                                </Button>
+                                <span>{item.quantity}</span>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => increaseQuantity(item._id)}
+                                >
+                                  +
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeFromCart(item._id)}
+                                  className="text-red-500 hover:bg-red-500/10"
+                                >
+                                  Remove
+                                </Button>
+                              </div>
                             </div>
                           </div>
                           <div className="font-medium">
