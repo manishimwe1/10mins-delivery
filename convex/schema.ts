@@ -48,7 +48,7 @@ export default defineSchema({
   }),
 
   orders: defineTable({
-    customerId: v.id("users"),
+    // customerId: v.id("users"),
     items: v.array(v.object({
       productId: v.id("products"),
       quantity: v.number(),
@@ -74,12 +74,13 @@ export default defineSchema({
       v.literal("delivered"),
       v.literal("cancelled")
     ),
-    hubId: v.id("fulfillment_hubs"),
+    // hubId: v.id("fulfillment_hubs"),
     deliveryPartnerId: v.optional(v.id("users")),
     estimatedDeliveryTime: v.number(),
     actualDeliveryTime: v.optional(v.number()),
     notes: v.optional(v.string()),
-  }).index("by_customer", ["customerId"])
+  })
+  // .index("by_customer", ["customerId"])
     .index("by_status", ["status"])
     .index("by_delivery_partner", ["deliveryPartnerId"]),
 

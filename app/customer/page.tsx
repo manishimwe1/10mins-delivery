@@ -27,7 +27,7 @@ export default function CustomerApp() {
     return matchesSearch && matchesCategory
   })
 
-  const {cart,updateQuantity,} = useCartStore();
+  const {cart, increaseQuantity, decreaseQuantity} = useCartStore();
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   if (loading) {
@@ -135,7 +135,7 @@ export default function CustomerApp() {
                             variant="outline"
                             size="sm"
                             className="h-6 w-6 p-0 bg-transparent"
-                            onClick={() => updateQuantity(item._id, -1)}
+                            onClick={() => decreaseQuantity(item._id)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -144,16 +144,16 @@ export default function CustomerApp() {
                             variant="outline"
                             size="sm"
                             className="h-6 w-6 p-0 bg-transparent"
-                            onClick={() => updateQuantity(item._id, 1)}
+                            onClick={() => increaseQuantity(item._id)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
                     ))}
-                    <div className="border-t pt-3 font-medium">Total: ${totalItems.toLocaleString()} items</div>
+                    <div className="border-t pt-3 font-medium">Total: {totalItems.toLocaleString()} items</div>
                     <Link href="/customer/checkout">
-                      <Button className="w-full">Checkout</Button>
+                      <Button className="w-full cursor-pointer">Checkout</Button>
                     </Link>
                   </div>
                 </CardContent>
