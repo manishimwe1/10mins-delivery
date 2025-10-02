@@ -1,28 +1,16 @@
 "use client"
 
-import { ShoppingCart, Plus, Minus, Search, Clock, ArrowLeft } from "lucide-react"
-import Link from "next/link"
-import { useQuery } from "convex/react"
-import { api } from "@/convex/_generated/api"
-import { Doc } from "@/convex/_generated/dataModel"
 import ProductCard from "@/components/ProductCard"
-import { useCartStore } from "@/lib/store"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-
-
-interface Product {
-  _id: string
-  name: string
-  description: string
-  price: number
-  category: string
-  image_url: string
-  stock_quantity: number
-}
+import { api } from "@/convex/_generated/api"
+import { useCartStore } from "@/lib/store"
+import { useQuery } from "convex/react"
+import { ArrowLeft, Clock, Minus, Plus, Search, ShoppingCart } from "lucide-react"
+import Link from "next/link"
+import { useState } from "react"
 
 export default function CustomerApp() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -73,7 +61,10 @@ export default function CustomerApp() {
             </div>
             <div className="flex items-center gap-4">
               <Link href="/customer/checkout">
-                <Button variant="outline" className="relative bg-transparent">
+                <Button
+                  variant="outline"
+                  className="relative cursor-pointer bg-transparent hover:bg-primary/10 hover:border-primary/50 hover:scale-105 transition-all duration-200 ease-in-out"
+                >
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Cart
                   {totalItems > 0 && (
