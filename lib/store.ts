@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import { Doc } from "@/convex/_generated/dataModel";
 
 export interface CartItem extends Doc<"products"> {
@@ -13,34 +14,41 @@ interface CartStore {
   clearCart: () => void;
 }
 
-export const useCartStore = create<CartStore>((set) => ({
-  cart: [],
-  addToCart: (product) =>
-    set((state) => {
-      const existingItem = state.cart.find((item) => item._id === product._id);
-      if (existingItem) {
-        return {
+export const useCartStore = create<CartStore>()(
+  persist(
+    (set) => ({
+      cart: [],
+      addToCart: (product) =>
+        set((state) => {
+          const existingItem = state.cart.find((item) => item._id === product._id);
+          if (existingItem) {
+            return {
+              cart: state.cart.map((item) =>
+                item._id === product._id
+                  ? { ...item, quantity: item.quantity + 1 }
+                  : item
+              ),
+            };
+          } else {
+            return {
+              cart: [...state.cart, { ...product, quantity: 1 }],
+            };
+          }
+        }),
+      removeFromCart: (productId) =>
+        set((state) => ({
+          cart: state.cart.filter((item) => item._id !== productId),
+        })),
+      updateQuantity: (productId, quantity) =>
+        set((state) => ({
           cart: state.cart.map((item) =>
-            item._id === product._id
-              ? { ...item, quantity: item.quantity + 1 }
-              : item
+            item._id === productId ? { ...item, quantity } : item
           ),
-        };
-      } else {
-        return {
-          cart: [...state.cart, { ...product, quantity: 1 }],
-        };
-      }
+        })),
+      clearCart: () => set({ cart: [] }),
     }),
-  removeFromCart: (productId) =>
-    set((state) => ({
-      cart: state.cart.filter((item) => item._id !== productId),
-    })),
-  updateQuantity: (productId, quantity) =>
-    set((state) => ({
-      cart: state.cart.map((item) =>
-        item._id === productId ? { ...item, quantity } : item
-      ),
-    })),
-  clearCart: () => set({ cart: [] }),
-}));
+    {
+      name: "cart-storage", // key in localStorage
+    }
+  )
+);
