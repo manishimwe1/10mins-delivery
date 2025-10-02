@@ -16,30 +16,16 @@ import { Doc } from "@/convex/_generated/dataModel";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Plus } from "lucide-react";
-import { useRef, useState } from "react";
-import { CartItem } from "@/app/customer/page";
+import { useRef } from "react";
 import Image from "next/image";
 import Autoplay from "embla-carousel-autoplay";
+import { useCartStore } from "@/lib/store";
 
 const ProductCard = ({ product }: { product: Doc<"products"> }) => {
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const addToCart = useCartStore((state) => state.addToCart);
   const plugin = useRef(
     Autoplay({ delay: 10000, stopOnInteraction: false }) // 10sec interval
   );
-
-  const addToCart = (product: Doc<"products">) => {
-    setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id);
-      if (existing) {
-        return prev.map((item) =>
-          item._id === product._id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
-      }
-      return [...prev, { ...product, quantity: 1, _id: product._id }];
-    });
-  };
   return (
     <Card
       key={product._id}

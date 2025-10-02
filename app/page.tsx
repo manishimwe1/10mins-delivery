@@ -39,17 +39,17 @@ export default function HomePage() {
               The complete platform to deliver groceries in <span className="text-primary">10 minutes</span>
             </h2>
             <p className="text-xl text-muted-foreground mb-8 text-pretty leading-relaxed">
-              Your team's toolkit to stop waiting and start delivering. Securely order, track, and deliver the best
+              Your team&apos;s toolkit to stop waiting and start delivering. Securely order, track, and deliver the best
               grocery experiences with QuickDelivery.
             </p>
             <div className="flex items-center justify-center gap-4">
               <Link href="/customer">
-                <Button size="lg" className="text-lg px-8">
+                <Button size="lg" className="text-lg px-8 cursor-pointer">
                   Start Shopping
                 </Button>
               </Link>
               <Link href="/admin">
-                <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent">
+                <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent cursor-pointer">
                   Admin Dashboard
                 </Button>
               </Link>

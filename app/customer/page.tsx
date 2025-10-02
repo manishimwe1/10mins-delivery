@@ -1,16 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { ShoppingCart, Plus, Minus, Search, Clock, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { Doc } from "@/convex/_generated/dataModel"
 import ProductCard from "@/components/ProductCard"
+import { useCartStore } from "@/lib/store"
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 
 
 interface Product {
@@ -23,13 +24,7 @@ interface Product {
   stock_quantity: number
 }
 
-export interface CartItem extends Product {
-  quantity: number
-}
-
 export default function CustomerApp() {
-  // const [products, setProducts] = useState<Product[]>([])
-  const [cart, setCart] = useState<CartItem[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
 
@@ -44,29 +39,8 @@ export default function CustomerApp() {
     return matchesSearch && matchesCategory
   })
 
-  
-
-  const updateQuantity = (id: string, change: number) => {
-    setCart((prev) => {
-      return prev
-        .map((item) => {
-          if (item._id === id) {
-            const newQuantity = item.quantity + change
-            return newQuantity > 0 ? { ...item, quantity: newQuantity } : null
-          }
-          return item
-        })
-        .filter(Boolean) as CartItem[]
-    })
-  }
-
-  const getTotalPrice = () => {
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  const getTotalItems = () => {
-    return cart.reduce((total, item) => total + item.quantity, 0)
-  }
+  const {cart,updateQuantity,} = useCartStore();
+  const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   if (loading) {
     return (
@@ -102,9 +76,9 @@ export default function CustomerApp() {
                 <Button variant="outline" className="relative bg-transparent">
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Cart
-                  {getTotalItems() > 0 && (
+                  {totalItems > 0 && (
                     <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs">
-                      {getTotalItems()}
+                      {totalItems}
                     </Badge>
                   )}
                 </Button>
@@ -186,7 +160,7 @@ export default function CustomerApp() {
                         </div>
                       </div>
                     ))}
-                    <div className="border-t pt-3 font-medium">Total: ${getTotalPrice().toFixed(2)}</div>
+                    <div className="border-t pt-3 font-medium">Total: ${totalItems.toLocaleString()} items</div>
                     <Link href="/customer/checkout">
                       <Button className="w-full">Checkout</Button>
                     </Link>
