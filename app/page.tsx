@@ -1,35 +1,14 @@
-import Link from "next/link"
+import Hearder from "@/components/Hearder"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, ShoppingCart, Truck, Users } from "lucide-react"
-import { UserMenu } from "@/components/user-menu"
+import Link from "next/link"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Clock className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold text-balance">QuickDelivery</h1>
-            </div>
-            <nav className="flex items-center gap-4">
-              <Link href="/customer">
-                <Button variant="ghost">Customer</Button>
-              </Link>
-              <Link href="/rider">
-                <Button variant="ghost">Rider</Button>
-              </Link>
-              <Link href="/admin">
-                <Button variant="ghost">Admin</Button>
-              </Link>
-              <UserMenu />
-            </nav>
-          </div>
-        </div>
-      </header>
+      <Hearder/>
 
       {/* Hero Section */}
       <section className="py-20">
@@ -42,14 +21,14 @@ export default function HomePage() {
               Your team&apos;s toolkit to stop waiting and start delivering. Securely order, track, and deliver the best
               grocery experiences with QuickDelivery.
             </p>
-            <div className="flex items-center justify-center gap-4">
-              <Link href="/customer">
-                <Button size="lg" className="text-lg px-8 cursor-pointer">
+            <div className="flex md:flex-row px-4 md:px-0 flex-col items-center justify-center gap-4 w-full">
+              <Link href="/customer" className="w-full">
+                <Button size="lg" className="text-lg px-8 cursor-pointer w-full">
                   Start Shopping
                 </Button>
               </Link>
-              <Link href="/admin">
-                <Button variant="outline" size="lg" className="text-lg px-8 bg-transparent cursor-pointer">
+              <Link href="/admin" className="w-full" >
+                <Button variant="outline" size="lg" className="w-full text-lg px-8 bg-transparent cursor-pointer">
                   Admin Dashboard
                 </Button>
               </Link>
