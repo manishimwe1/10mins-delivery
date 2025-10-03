@@ -55,5 +55,4 @@ export const paymentsApi = {
 export const mobileMoneyProviders = [
   { id: "mtn", name: "MTN Mobile Money", color: "bg-yellow-500" },
   { id: "airtel", name: "Airtel Money", color: "bg-red-500" },
-  { id: "vodafone", name: "Vodafone Cash", color: "bg-red-600" },
 ] as const

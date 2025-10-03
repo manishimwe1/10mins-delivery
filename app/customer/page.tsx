@@ -1,33 +1,49 @@
-"use client"
+"use client";
 
-import ProductCard from "@/components/ProductCard"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { api } from "@/convex/_generated/api"
-import { useCartStore } from "@/lib/store"
-import { useQuery } from "convex/react"
-import { ArrowLeft, Clock, Minus, Plus, Search, ShoppingCart } from "lucide-react"
-import Link from "next/link"
-import { useState } from "react"
+import ProductCard from "@/components/ProductCard";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { api } from "@/convex/_generated/api";
+import { useCartStore } from "@/lib/store";
+import { useQuery } from "convex/react";
+import {
+  ArrowLeft,
+  Clock,
+  Minus,
+  Plus,
+  Search,
+  ShoppingCart,
+} from "lucide-react";
+import Link from "next/link";
+import { useIsMobile } from "@/components/ui/use-mobile";
+import { useState } from "react";
+import DropDownFilter from "@/components/DropDownFilter";
 
 export default function CustomerApp() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const isMobile = useIsMobile();
 
   const products = useQuery(api.products.getProducts);
   const loading = products === undefined;
 
-  const categories = ["all", ...Array.from(new Set((products || []).map((p) => p.category)))]
+  const categories = [
+    "all",
+    ...Array.from(new Set((products || []).map((p) => p.category))),
+  ];
 
   const filteredProducts = (products || []).filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
-  const {cart, increaseQuantity, decreaseQuantity} = useCartStore();
+  const { cart, increaseQuantity, decreaseQuantity } = useCartStore();
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
   if (loading) {
@@ -38,7 +54,7 @@ export default function CustomerApp() {
           <p className="text-muted-foreground">Loading products...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -54,9 +70,11 @@ export default function CustomerApp() {
                   Back
                 </Button>
               </Link>
-              <div className="flex items-center gap-2">
+              <div className="md:flex hidden items-center gap-2">
                 <Clock className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold"><span className="text-primary">10mins</span>Delivery</h1>
+                <h1 className="text-xl font-bold">
+                  <span className="text-primary">10mins</span>Delivery
+                </h1>
               </div>
             </div>
             <div className="flex items-center gap-4">
@@ -88,37 +106,51 @@ export default function CustomerApp() {
                 <CardTitle>Search & Filter</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search products..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-medium mb-3">Categories</h3>
-                  <div className="space-y-2">
-                    {categories.map((category) => (
-                      <Button
-                        key={category}
-                        variant={selectedCategory === category ? "default" : "ghost"}
-                        size="sm"
-                        className="w-full justify-start"
-                        onClick={() => setSelectedCategory(category)}
-                      >
-                        {category === "all" ? "All Products" : category}
-                      </Button>
-                    ))}
+                <div className="flex flex-row md:flex-col items-center gap-2">
+                  <div className="relative w-full">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search products..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
+                  {isMobile && (
+                    <DropDownFilter
+                      items={categories}
+                      selectedItem={selectedCategory}
+                      onSelect={setSelectedCategory}
+                      label="Category"
+                    />
+                  )}
                 </div>
+                {!isMobile && (
+                  <div>
+                    <h3 className="font-medium mb-3">Categories</h3>
+                    <div className="space-y-2">
+                      {categories.map((category) => (
+                        <Button
+                          key={category}
+                          variant={
+                            selectedCategory === category ? "default" : "ghost"
+                          }
+                          size="sm"
+                          className="w-full justify-start"
+                          onClick={() => setSelectedCategory(category)}
+                        >
+                          {category === "all" ? "All Products" : category}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Cart Summary */}
             {cart.length > 0 && (
-              <Card className="border-border/40 bg-card/50 backdrop-blur-sm mt-6">
+              <Card className="hidden md:block border-border/40 bg-card/50 backdrop-blur-sm mt-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <ShoppingCart className="h-5 w-5" />
@@ -128,7 +160,10 @@ export default function CustomerApp() {
                 <CardContent>
                   <div className="space-y-3">
                     {cart.map((item) => (
-                      <div key={item._id} className="flex items-center justify-between text-sm">
+                      <div
+                        key={item._id}
+                        className="flex items-center justify-between text-sm"
+                      >
                         <span className="truncate flex-1">{item.name}</span>
                         <div className="flex items-center gap-2">
                           <Button
@@ -139,7 +174,9 @@ export default function CustomerApp() {
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
-                          <span className="w-8 text-center">{item.quantity}</span>
+                          <span className="w-8 text-center">
+                            {item.quantity}
+                          </span>
                           <Button
                             variant="outline"
                             size="sm"
@@ -151,9 +188,13 @@ export default function CustomerApp() {
                         </div>
                       </div>
                     ))}
-                    <div className="border-t pt-3 font-medium">Total: {totalItems.toLocaleString()} items</div>
+                    <div className="border-t pt-3 font-medium">
+                      Total: {totalItems.toLocaleString()} items
+                    </div>
                     <Link href="/customer/checkout">
-                      <Button className="w-full cursor-pointer">Checkout</Button>
+                      <Button className="w-full cursor-pointer">
+                        Checkout
+                      </Button>
                     </Link>
                   </div>
                 </CardContent>
@@ -168,7 +209,8 @@ export default function CustomerApp() {
                 {selectedCategory === "all" ? "All Products" : selectedCategory}
               </h2>
               <p className="text-muted-foreground">
-                {filteredProducts.length} products available for 10-minute delivery
+                {filteredProducts.length} products available for 10-minute
+                delivery
               </p>
             </div>
 
@@ -182,12 +224,14 @@ export default function CustomerApp() {
               <div className="text-center py-12">
                 <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium mb-2">No products found</h3>
-                <p className="text-muted-foreground">Try adjusting your search or filter criteria</p>
+                <p className="text-muted-foreground">
+                  Try adjusting your search or filter criteria
+                </p>
               </div>
             )}
           </div>
         </div>
       </div>
     </div>
-  )
+  );
 }

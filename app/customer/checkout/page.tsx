@@ -16,16 +16,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DELIVERY_FEE } from "@/constant";
-import { ordersApi } from "@/lib/api";
+import { api } from "@/convex/_generated/api";
 import { useCartStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useMutation } from "convex/react";
 import { ArrowLeft, Clock, CreditCard, MapPin, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -40,7 +38,7 @@ export default function CheckoutPage() {
     notes: "",
   });
 
-  const { cart, clearCart, increaseQuantity, decreaseQuantity, removeFromCart } = useCartStore();
+  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCartStore();
   const createOrder = useMutation(api.orders.createOrder);
 
   const subtotal = cart.reduce(
@@ -112,10 +110,10 @@ export default function CheckoutPage() {
                 Back to Shopping
               </Button>
             </Link>
-            <div className="flex items-center gap-2">
+            {/* <div className="flex items-center gap-2">
               <Clock className="h-6 w-6 text-primary" />
               <h1 className="text-xl font-bold">Checkout</h1>
-            </div>
+            </div> */}
           </div>
         </div>
       </header>
@@ -240,7 +238,7 @@ export default function CheckoutPage() {
                           <div>
                             <div className="font-medium">Mobile Money</div>
                             <div className="text-sm text-muted-foreground">\
-                              Pay via MTN, Airtel, or Vodafone
+                              Pay via MTN, Airtel
                             </div>
                           </div>
                         </Label>

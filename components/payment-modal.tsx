@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -19,15 +18,15 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { Badge } from "@/components/ui/badge"
-import {
-  Smartphone,
-  CreditCard,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-} from "lucide-react"
 import { mobileMoneyProviders } from "@/lib/payments"
+import {
+  AlertCircle,
+  CheckCircle,
+  CreditCard,
+  Loader2,
+  Smartphone,
+} from "lucide-react"
+import { useState } from "react"
 
 interface PaymentModalProps {
   isOpen: boolean
