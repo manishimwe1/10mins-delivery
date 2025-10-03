@@ -23,6 +23,9 @@ import { ArrowLeft, Clock, CreditCard, MapPin, Smartphone } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -37,7 +40,8 @@ export default function CheckoutPage() {
     notes: "",
   });
 
-  const { cart, increaseQuantity, decreaseQuantity, removeFromCart } = useCartStore();
+  const { cart, clearCart, increaseQuantity, decreaseQuantity, removeFromCart } = useCartStore();
+  const createOrder = useMutation(api.orders.createOrder);
 
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -55,21 +59,25 @@ export default function CheckoutPage() {
 
     setIsSubmitting(true);
     try {
-      const order = await ordersApi.create({
-        customer_name: formData.fullName,
-        customer_phone: formData.phone,
-        delivery_address: formData.address,
-        payment_method: paymentMethod === "cash" ? "cash" : "mobile_money",
+      // Placeholder for customerId - replace with actual user ID from auth context
+      // const customerId = "667a4e21-3b1e-4b0a-8b0a-3b1e4b0a8b0a"; // Example placeholder ID
+
+      const orderId = await createOrder({
+        // customerId: customerId as Id<'users'>,
         items: cart.map((item) => ({
-          id: item._id,
-          name: item.name,
-          price: item.price,
+          productId: item._id,
           quantity: item.quantity,
+          price: item.price,
         })),
-        notes: formData.notes,
+        deliveryAddress: {
+          street: formData.address,
+          city: "Unknown", // Placeholder
+          zipCode: "00000", // Placeholder
+          coordinates: { lat: 0, lng: 0 }, // Placeholder
+        },
       });
 
-      setCurrentOrderId(order.id);
+      setCurrentOrderId(orderId);
 
       // Show payment modal for processing
       setShowPaymentModal(true);
@@ -213,7 +221,7 @@ export default function CheckoutPage() {
                           <CreditCard className="h-4 w-4" />
                           <div>
                             <div className="font-medium">Cash on Delivery</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">\
                               Pay when your order arrives
                             </div>
                           </div>
@@ -231,7 +239,7 @@ export default function CheckoutPage() {
                           <Smartphone className="h-4 w-4" />
                           <div>
                             <div className="font-medium">Mobile Money</div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground">\
                               Pay via MTN, Airtel, or Vodafone
                             </div>
                           </div>

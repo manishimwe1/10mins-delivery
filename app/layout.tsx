@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
+import NextTopLoader from 'nextjs-toploader';
 import { ConvexClientProvider } from "@/components/ConvexClientProvider"
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
         <div className="min-h-screen bg-background grid-pattern">
+          <NextTopLoader />
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </div>
         <Analytics />
