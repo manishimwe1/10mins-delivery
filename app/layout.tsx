@@ -5,8 +5,8 @@ import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import NextTopLoader from "nextjs-toploader";
-import { ConvexClientProvider } from "@/components/ConvexClientProvider";
-
+import { ClerkProvider } from "@clerk/nextjs";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 export const metadata: Metadata = {
   title: "QuickDelivery - 10 Minute Delivery App",
   description: "Get your groceries delivered in 10 minutes",
@@ -19,14 +19,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <div className="min-h-screen bg-background grid-pattern">
-          <NextTopLoader color="oklch(0.65 0.2 142)" showSpinner={false} />
-          <ConvexClientProvider>{children}</ConvexClientProvider>
-        </div>
-        <Analytics />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className="dark" suppressHydrationWarning>
+        <body
+          className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}
+        >
+          <div className="min-h-screen bg-background grid-pattern">
+            <NextTopLoader color="oklch(0.65 0.2 142)" showSpinner={false} />
+            <ConvexClientProvider>{children}</ConvexClientProvider>
+          </div>
+          <Analytics />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

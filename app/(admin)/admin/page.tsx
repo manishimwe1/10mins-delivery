@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,13 +9,29 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useCallback, useEffect, useState } from "react";
 
-import { useDropzone } from "react-dropzone";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -31,59 +47,27 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { api } from "@/convex/_generated/api";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery } from "convex/react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Settings,
-  ShoppingCart,
-  Users,
-  TrendingUp,
-  Plus,
-  Edit,
-  Trash2,
-  ArrowLeft,
   Clock,
   DollarSign,
   Eye,
-  UserCheck,
-  X,
+  Plus,
+  ShoppingCart,
+  TrendingUp,
   Upload,
+  UserCheck,
+  Users,
+  X
 } from "lucide-react";
-import { toast } from "sonner";
-import Link from "next/link";
 import Image from "next/image";
-import { Toaster } from "@/components/ui/sonner";
+import { useDropzone } from "react-dropzone";
 import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 import * as z from "zod";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { api } from "@/convex/_generated/api";
-import { useMutation } from "convex/react";
 import ProductTable from "./_components/ProductTable";
-
-interface Product {
-  id: number;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  stock_quantity: number;
-  is_active: boolean;
-}
 
 interface Order {
   id: string;
@@ -113,7 +97,6 @@ interface Rider {
 }
 
 export default function AdminPanel() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [riders, setRiders] = useState<Rider[]>([]);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -122,6 +105,7 @@ export default function AdminPanel() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
 
   const addProduct = useMutation(api.products.createProduct);
+  const products = useQuery(api.products.getProducts)
 
   const formSchema = z.object({
     name: z.string().min(1, "Product name is required"),
@@ -246,35 +230,6 @@ export default function AdminPanel() {
 
   // Mock data
   useEffect(() => {
-    const mockProducts: Product[] = [
-      {
-        id: 1,
-        name: "Fresh Bananas",
-        description: "Organic bananas from local farms",
-        price: 2.99,
-        category: "Fruits",
-        stock_quantity: 50,
-        is_active: true,
-      },
-      {
-        id: 2,
-        name: "Whole Milk",
-        description: "Fresh whole milk 1L",
-        price: 3.49,
-        category: "Dairy",
-        stock_quantity: 30,
-        is_active: true,
-      },
-      {
-        id: 3,
-        name: "Bread Loaf",
-        description: "Freshly baked white bread",
-        price: 2.79,
-        category: "Bakery",
-        stock_quantity: 25,
-        is_active: true,
-      },
-    ];
 
     const mockOrders: Order[] = [
       {
@@ -345,7 +300,6 @@ export default function AdminPanel() {
       },
     ];
 
-    setProducts(mockProducts);
     setOrders(mockOrders);
     setRiders(mockRiders);
   }, []);
@@ -393,26 +347,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back
-                </Button>
-              </Link>
-              <div className="flex items-center gap-2">
-                <Settings className="h-6 w-6 text-primary" />
-                <h1 className="text-xl font-bold">Admin Panel</h1>
-              </div>
-            </div>
-            <Badge variant="outline">Administrator</Badge>
-          </div>
-        </div>
-      </header>
+
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats Cards */}
@@ -972,9 +907,9 @@ export default function AdminPanel() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {products.slice(0, 3).map((product, index) => (
+                    {products?.slice(0, 3).map((product, index) => (
                       <div
-                        key={product.id}
+                        key={product._id}
                         className="flex items-center justify-between"
                       >
                         <div className="flex items-center gap-3">

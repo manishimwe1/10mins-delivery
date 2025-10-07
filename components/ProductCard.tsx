@@ -23,6 +23,7 @@ import { useCartStore } from "@/lib/store";
 
 const ProductCard = ({ product }: { product: Doc<"products"> }) => {
   const addToCart = useCartStore((state) => state.addToCart);
+  
   const plugin = useRef(
     Autoplay({ delay: 10000, stopOnInteraction: false }) // 10sec interval
   );
@@ -58,7 +59,7 @@ const ProductCard = ({ product }: { product: Doc<"products"> }) => {
           </Carousel>
         </div>
         <CardTitle className="text-lg">{product.name}</CardTitle>
-        <CardDescription className="text-pretty">
+        <CardDescription className="text-pretty line-clamp-3">
           {product.description}
         </CardDescription>
       </CardHeader>

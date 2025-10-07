@@ -100,7 +100,7 @@ export default function OrderConfirmationPage() {
   return (
     <div className="min-h-screen">
       {/* Header */}
-      <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
+      {/* <header className="border-b border-border/40 bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ export default function OrderConfirmationPage() {
             </Link>
           </div>
         </div>
-      </header>
+      </header> */}
 
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto space-y-6">
@@ -223,7 +223,7 @@ export default function OrderConfirmationPage() {
                       </div>
                     </div>
                     <div className="font-medium">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {(item.price * item.quantity).toLocaleString()} rwf
                     </div>
                   </div>
                 ))}
@@ -235,24 +235,24 @@ export default function OrderConfirmationPage() {
                 <div className="flex justify-between">
                   <span>Subtotal</span>
                   <span>
-                    $
+                  
                     {order.items
                       .reduce(
                         (acc, item) => acc + item.price * item.quantity,
                         0
                       )
-                      .toFixed(2)}
+                      .toLocaleString()} Rwf
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>Delivery Fee</span>
-                  <span>${DELIVERY_FEE.toLocaleString()}</span>
+                  <span>{DELIVERY_FEE.toLocaleString()} Rwf</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
                   <span className="text-primary">
-                    ${order.totalAmount.toLocaleString()}
+                    {order.totalAmount.toLocaleString()} Rwf
                   </span>
                 </div>
               </div>
